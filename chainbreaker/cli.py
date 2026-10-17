@@ -238,5 +238,23 @@ def snapshot_import(dataset: str = typer.Option(..., "--dataset")) -> None:
     typer.echo(import_(dataset))
 
 
+@app.command("apply-demo")
+def apply_demo(plan: str = typer.Option(..., "--plan"), open_: bool = typer.Option(False, "--open"),
+               merge: bool = typer.Option(False, "--merge")) -> None:
+    """Open the phase-1 PRs (--open) or merge them, move tags, REPIN and rescan (--merge). Demo org only."""
+    from .demo import apply
+    if open_:
+        apply.open_phase1(plan, typer.echo)
+    if merge:
+        _out(apply.merge_and_continue(plan, typer.echo))
+
+
+@app.command("rescan-demo")
+def rescan_demo() -> None:
+    """Re-crawl the demo org (no cache), rebuild cb:demo, relink advisories, print exposure."""
+    from .demo import apply
+    _out(apply.rescan(typer.echo))
+
+
 if __name__ == "__main__":
     app()
