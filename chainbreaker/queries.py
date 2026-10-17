@@ -191,6 +191,7 @@ FINDING_CREATE = """CREATE (f:Finding {id: $id, question: $question, answer: $an
                     action_id: $aid})
 WITH f OPTIONAL MATCH (a:Action {id: $aid})
 FOREACH (_ IN CASE WHEN a IS NULL THEN [] ELSE [1] END | CREATE (f)-[:ABOUT]->(a))"""
+FINDINGS_CLEAR = "MATCH (f:Finding) DETACH DELETE f"
 FINDINGS = """MATCH (f:Finding) WHERE $aid = '' OR f.action_id = $aid OR f.action_id CONTAINS $aid
 RETURN f.created_at AS date, f.question AS question, f.answer AS answer, f.action_id AS action_id
 ORDER BY f.created_at DESC LIMIT 5"""

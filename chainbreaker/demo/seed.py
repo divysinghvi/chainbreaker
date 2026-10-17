@@ -2,7 +2,7 @@
 import json
 import time
 
-from .. import config
+from .. import config, db, queries as Q
 from ..github import rest
 from . import scenario as S
 
@@ -80,4 +80,6 @@ def reset(log=print) -> dict:
                 rest.close_pr(org, name, pr["number"])
                 log(f"  closed {name}#{pr['number']}")
             rest.delete_branch(org, name, head)
+    if db.graph_exists("demo"):  # a fresh scenario starts with fresh agent memory
+        db.run("demo", Q.FINDINGS_CLEAR)
     return seed(log)
