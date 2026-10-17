@@ -17,13 +17,13 @@
   <div class="brand"><span class="logo" aria-hidden="true">⛓</span><span>Chain<b>Breaker</b></span></div>
   <nav class="datasets" aria-label="Dataset">
     <div class="pills" role="tablist">
-      <button class="pill" data-ds="demo" role="tab">Demo org</button>
-      <button class="pill" data-ds="cncf" role="tab">CNCF <span class="muted" id="cncf-count">(1k repos)</span></button>
-      <button class="pill" data-ds="replay-tj-2025" role="tab">tj-actions 2025 replay</button>
+      <button class="pill" data-ds="demo" data-demo="ds-demo" role="tab">Demo org</button>
+      <button class="pill" data-ds="cncf" data-demo="ds-cncf" role="tab">CNCF <span class="muted" id="cncf-count">(1k repos)</span></button>
+      <button class="pill" data-ds="replay-tj-2025" data-demo="ds-replay" role="tab">tj-actions 2025 replay</button>
     </div>
     <span class="caption">each is its own FalkorDB graph</span>
   </nav>
-  <div class="stats" id="stats" aria-live="polite"></div>
+  <div class="stats" id="stats" data-demo="stats" aria-live="polite"></div>
   <div class="counter mono" id="counter" title="FalkorDB time for the last request">FalkorDB: – ms · – queries</div>
 </header>
 
@@ -33,23 +33,23 @@
     <div id="incident">
       <label class="lbl" for="action-q">Action</label>
       <div class="search">
-        <input id="action-q" class="mono" autocomplete="off" placeholder="owner/repo" aria-autocomplete="list" aria-controls="action-list">
+        <input id="action-q" data-demo="action-input" class="mono" autocomplete="off" placeholder="owner/repo" aria-autocomplete="list" aria-controls="action-list">
         <ul id="action-list" class="suggest" role="listbox" hidden></ul>
       </div>
-      <button id="compromise" class="btn danger">Simulate compromise</button>
+      <button id="compromise" data-demo="simulate" class="btn danger">Simulate compromise</button>
       <p class="hint" id="adv-info"></p>
 
       <div class="depth" id="depth-box" hidden>
         <label class="lbl" for="depth">Traversal depth <b id="depth-val" class="mono">1</b> <span class="muted">hops of <code>uses:</code></span></label>
-        <input id="depth" type="range" min="1" max="6" value="1">
+        <input id="depth" data-demo="depth-slider" type="range" min="1" max="6" value="1">
         <div class="ticks mono" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
       </div>
 
       <div class="cards" id="cards" hidden>
-        <div class="card"><div class="num" id="n-grep">0</div><div class="cap">grep finds <span class="muted">(depth 1)</span></div></div>
-        <div class="card hl"><div class="num" id="n-total">0</div><div class="cap">ChainBreaker finds</div></div>
-        <div class="card"><div class="num" id="n-hidden">0</div><div class="cap">hidden <span class="muted">(depth ≥ 2)</span></div></div>
-        <div class="card"><div class="num" id="n-pinned">0</div><div class="cap">pinned to a SHA and still exposed</div></div>
+        <div class="card" data-demo="card-depth1"><div class="num" id="n-grep">0</div><div class="cap">grep finds <span class="muted">(depth 1)</span></div></div>
+        <div class="card hl" data-demo="card-total"><div class="num" id="n-total">0</div><div class="cap">ChainBreaker finds</div></div>
+        <div class="card" data-demo="card-hidden"><div class="num" id="n-hidden">0</div><div class="cap">hidden <span class="muted">(depth ≥ 2)</span></div></div>
+        <div class="card" data-demo="card-pinned"><div class="num" id="n-pinned">0</div><div class="cap">pinned to a SHA and still exposed</div></div>
       </div>
       <div class="chips" id="sev-chips"></div>
 
@@ -59,7 +59,7 @@
           <button class="mini on" data-sort="sev">severity</button><button class="mini" data-sort="depth">depth</button>
         </div>
       </div>
-      <ul class="exposed" id="exposed"></ul>
+      <ul class="exposed" id="exposed" data-demo="exposed-list"></ul>
     </div>
     <div id="replay-left" hidden>
       <p>March 2025: one leaked token, then a chain of actions depending on actions, reached a target that never referenced the compromised action directly.</p>
@@ -77,7 +77,7 @@
     <div id="graph" class="graph"></div>
     <div class="graph-note" id="graph-note" hidden></div>
     <div class="empty" id="graph-empty">Pick an action and simulate a compromise. Infection flows left → right, from the compromised action to every pipeline that runs it.</div>
-    <aside class="drawer" id="drawer" hidden aria-labelledby="drawer-h">
+    <aside class="drawer" id="drawer" data-demo="drawer" hidden aria-labelledby="drawer-h">
       <div class="drawer-head"><h3 id="drawer-h" class="mono"></h3><button class="x" id="drawer-x" aria-label="Close">×</button></div>
       <div id="drawer-body"></div>
     </aside>
@@ -85,41 +85,41 @@
 
   <section class="panel right" aria-label="Fix, agent, leaderboard, replay">
     <div class="tabs" role="tablist">
-      <button class="tab on" data-tab="fix" role="tab">Fix</button>
-      <button class="tab" data-tab="agent" role="tab">Agent</button>
-      <button class="tab" data-tab="leader" role="tab">Leaderboard</button>
-      <button class="tab" data-tab="replay" role="tab">Replay</button>
+      <button class="tab on" data-tab="fix" data-demo="tab-fix" role="tab">Fix</button>
+      <button class="tab" data-tab="agent" data-demo="tab-agent" role="tab">Agent</button>
+      <button class="tab" data-tab="leader" data-demo="tab-leader" role="tab">Leaderboard</button>
+      <button class="tab" data-tab="replay" data-demo="tab-replay" role="tab">Replay</button>
     </div>
 
     <div class="tabpane" id="tab-fix">
       <div class="seg" role="group" aria-label="Targets">
-        <button class="mini on" data-targets="all">All exposed</button><button class="mini" data-targets="high">High-value only</button>
+        <button class="mini on" data-targets="all" data-demo="targets-all">All exposed</button><button class="mini" data-targets="high">High-value only</button>
       </div>
-      <button id="plan" class="btn primary" disabled>Compute minimal fix</button>
+      <button id="plan" data-demo="compute-fix" class="btn primary" disabled>Compute minimal fix</button>
       <div id="plan-out"></div>
       <div id="admin" class="admin" hidden>
         <h3>Act in the demo org <span class="muted">(admin)</span></h3>
         <label class="lbl" for="admin-token">Admin token</label>
-        <input id="admin-token" type="password" class="mono" autocomplete="off" placeholder="X-Admin-Token">
+        <input id="admin-token" data-demo="admin-token" type="password" class="mono" autocomplete="off" placeholder="X-Admin-Token">
         <div class="row">
-          <button id="open-prs" class="btn" disabled>Open PRs</button>
-          <button id="merge" class="btn" disabled>Merge &amp; continue</button>
+          <button id="open-prs" data-demo="open-prs" class="btn" disabled>Open PRs</button>
+          <button id="merge" data-demo="merge" class="btn" disabled>Merge &amp; continue</button>
         </div>
         <div class="row">
-          <button id="rescan" class="btn ghost">Rescan</button>
+          <button id="rescan" data-demo="rescan" class="btn ghost">Rescan</button>
           <button id="reset" class="btn ghost">Reset demo</button>
         </div>
-        <ol class="log mono" id="admin-log"></ol>
+        <ol class="log mono" id="admin-log" data-demo="pr-log"></ol>
       </div>
     </div>
 
     <div class="tabpane" id="tab-agent" hidden>
-      <div class="agent-head"><span class="muted">One chat keeps its tool results across questions.</span><button class="mini" id="new-chat" type="button">New chat</button></div>
+      <div class="agent-head"><span class="muted">One chat keeps its tool results across questions.</span><button class="mini" id="new-chat" data-demo="agent-new-chat" type="button">New chat</button></div>
       <div class="prompts" id="prompts"></div>
       <div class="timeline" id="timeline" aria-live="polite"></div>
       <form id="ask" class="ask">
         <label class="sr" for="ask-q">Ask the agent</label>
-        <input id="ask-q" placeholder="Ask about this dataset…" autocomplete="off">
+        <input id="ask-q" data-demo="agent-input" placeholder="Ask about this dataset…" autocomplete="off">
         <button class="btn primary" id="ask-go">Ask</button>
       </form>
       <p class="hint">The agent only calls fixed, parameterized tools (no LLM-written Cypher). It can request approval but never opens a PR itself.</p>
@@ -127,13 +127,13 @@
 
     <div class="tabpane" id="tab-leader" hidden>
       <p class="hint">Most load-bearing actions: <code>algo.pageRank</code> over <code>USES</code> edges, plus transitive reach computed in FalkorDB.</p>
-      <div id="leader"></div>
+      <div id="leader" data-demo="leaderboard"></div>
     </div>
 
     <div class="tabpane" id="tab-replay" hidden>
       <div class="stepper" id="stepper"></div>
-      <p class="replay-cap" id="replay-cap" aria-live="polite"></p>
-      <div class="row"><button class="btn ghost" id="rp-prev">← Prev</button><button class="btn" id="rp-next">Next →</button></div>
+      <p class="replay-cap" id="replay-cap" data-demo="replay-caption" aria-live="polite"></p>
+      <div class="row"><button class="btn ghost" id="rp-prev">← Prev</button><button class="btn" id="rp-next" data-demo="replay-next">Next →</button></div>
       <p class="hint">Source: <a id="replay-src" target="_blank" rel="noopener">Unit 42</a></p>
     </div>
   </section>

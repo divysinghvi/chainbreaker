@@ -299,7 +299,7 @@ function renderList() {
   const xs = [...(S.blast ? S.blast.exposed : [])];
   xs.sort(S.sort === "depth" ? (a, b) => b.depth - a.depth || SEV_ORDER[a.severity] - SEV_ORDER[b.severity]
                              : (a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity] || b.depth - a.depth);
-  $("#exposed").innerHTML = xs.slice(0, 300).map((x) => `<li tabindex="0" data-wf="${esc(x.workflow)}">
+  $("#exposed").innerHTML = xs.slice(0, 300).map((x) => `<li tabindex="0" data-demo="exposed-row" data-wf="${esc(x.workflow)}">
     <span class="sev ${x.severity}">${x.severity}</span><span class="name">${esc(shortWf(x.workflow))}</span>
     ${x.pinned_but_exposed ? '<span class="tag" title="pinned its direct dependency to a SHA, still exposed">SHA-pinned</span>' : ""}
     <span class="d">d${x.depth}</span></li>`).join("") + (xs.length > 300 ? `<li class="muted">…and ${xs.length - 300} more</li>` : "");
@@ -311,7 +311,7 @@ async function openDrawer(wid) {
   const r = await api(`/api/${S.ds}/advisories/${S.adv}/path?workflow=${encodeURIComponent(wid)}&depth=8`);
   $("#drawer-h").textContent = wid;
   const p = r.path, risk = r.risk || {};
-  const hops = p ? `<p>${p.depth} hop${p.depth > 1 ? "s" : ""} to the compromised ref <span class="engine">${esc(p.engine)}</span></p><ol class="hops">${p.hops.map((h) => {
+  const hops = p ? `<p>${p.depth} hop${p.depth > 1 ? "s" : ""} to the compromised ref <span class="engine">${esc(p.engine)}</span></p><ol class="hops" data-demo="path-hops">${p.hops.map((h) => {
     const link = ghLink(h.file_repo, h.file_path, h.lines);
     const where = `${esc(h.file_repo)}:${esc(h.file_path)}:${h.lines.join(",")}`;
     return `<li class="hop"><div class="uses">uses: ${esc(shortSha(h.uses))}${h.pinned ? '<span class="badge pin">SHA</span>' : '<span class="badge mut">mutable</span>'}</div>
@@ -337,12 +337,12 @@ async function computePlan() {
     S.plan = p;
     S.cut = new Set(p.fixes.map((f) => `${f.dst_id}|${f.src_id}`));
     const fb = p.engine.includes("fallback");
-    $("#plan-out").innerHTML = `<p class="headline"><b>${p.cut_size} change${p.cut_size === 1 ? "" : "s"}</b> protect <b>${p.protected}</b> pipelines <span class="muted">(naive: ${p.naive})</span></p>
-      <span class="engine ${fb ? "fallback" : ""}">${fb ? "networkx fallback" : "FalkorDB algo.maxFlow"}</span>
+    $("#plan-out").innerHTML = `<p class="headline" data-demo="fix-headline"><b>${p.cut_size} change${p.cut_size === 1 ? "" : "s"}</b> protect <b>${p.protected}</b> pipelines <span class="muted">(naive: ${p.naive})</span></p>
+      <span class="engine ${fb ? "fallback" : ""}" data-demo="engine-badge">${fb ? "networkx fallback" : "FalkorDB algo.maxFlow"}</span>
       <span class="muted mono" style="font-size:11px"> maxFlow ${p.max_flow} · GRAPH.COPY ${p.copy_ms} ms</span>
       <ul class="fixes">${p.fixes.slice(0, 40).map(fixCard).join("")}</ul>
       ${p.fixes.length > 40 ? `<p class="muted">…and ${p.fixes.length - 40} more</p>` : ""}
-      <button class="btn" id="simulate">Simulate fix (GRAPH.COPY)</button><div id="sim-out"></div>
+      <button class="btn" id="simulate" data-demo="simulate-fix">Simulate fix (GRAPH.COPY)</button><div id="sim-out"></div>
       <p class="hint"><b>PIN</b> = pin the compromised ref to the known-good SHA · <b>REPIN</b> = move an existing SHA pin to the fixed commit · <b>VENDOR</b> = replace or vendor an intermediate action (manual).</p>`;
     $("#simulate").onclick = simulateFix;
     $("#open-prs").disabled = !(S.ds === "demo" && p.fixes.some((f) => f.phase === 1));
@@ -363,7 +363,7 @@ function fixCard(f) {
 
 async function simulateFix() {
   const s = await api(`/api/${S.ds}/plans/${S.plan.id}/simulate`, { method: "POST" });
-  $("#sim-out").innerHTML = `<div class="sim">What-if on a scratch copy: exposed <b>${s.before}</b> → <b style="color:${s.after ? C.red : C.green}">${s.after}</b>
+  $("#sim-out").innerHTML = `<div class="sim" data-demo="sim-result">What-if on a scratch copy: exposed <b>${s.before}</b> → <b style="color:${s.after ? C.red : C.green}">${s.after}</b>
     <span class="muted">(all targets: ${s.before_total} → ${s.after_total}) · GRAPH.COPY ${s.copy_ms} ms · scratch graph deleted</span></div>`;
 }
 
@@ -470,11 +470,12 @@ function handleEvent(ev, pending, q) {
     if (b) b.onclick = () => approve(ev.plan_id, d);
   } else if (ev.type === "final") {
     const g = ev.grounding, warn = g.unverified.length > 0;
-    const chips = (ev.paths || []).slice(0, 3).map((p) => `<div class="pathchips"><span class="pc" data-wf="${esc(p.workflow)}">${esc(shortWf(p.workflow))}</span>${
+    const chips = (ev.paths || []).slice(0, 3).map((p) => `<div class="pathchips" data-demo="agent-paths"><span class="pc" data-wf="${esc(p.workflow)}">${esc(shortWf(p.workflow))}</span>${
       p.hops.map((h) => `<span class="arrow">→</span><span class="pc">${esc(shortSha(h.to.split("/").slice(1).join("/") || h.to))}</span>`).join("")}</div>`).join("");
+    $$("[data-demo=agent-final]").forEach((e) => e.removeAttribute("data-demo"));
     evCard("final", `<div class="answer">${mdLite(ev.text)}</div>${chips}
-      <span class="ground ${warn ? "warn" : ""}">${warn ? "⚠" : "✓"} Grounded: ${g.verified}/${g.total} names verified in FalkorDB${warn ? ` · unverified: ${esc(g.unverified.join(", "))}` : ""}</span>
-      <span class="muted" style="font-size:11px"> · ${esc(ev.outcome)}</span>`);
+      <span class="ground ${warn ? "warn" : ""}" data-demo="agent-grounding">${warn ? "⚠" : "✓"} Grounded: ${g.verified}/${g.total} names verified in FalkorDB${warn ? ` · unverified: ${esc(g.unverified.join(", "))}` : ""}</span>
+      <span class="muted" style="font-size:11px"> · ${esc(ev.outcome)}</span>`).setAttribute("data-demo", "agent-final");
   } else if (ev.type === "error") {
     evCard("err", esc(ev.message));
   }
@@ -507,7 +508,7 @@ async function showReplay() {
   if (!S.replay) S.replay = await api("/api/replay/tj-2025");
   $("#stats").innerHTML = `<span><b>${S.replay.nodes.length}</b> nodes</span><span><b>${S.replay.steps.filter((s) => s.edge).length}</b> edges</span><span class="mono">${esc(S.replay.graph)}</span>`;
   $("#replay-src").href = S.replay.source;
-  $("#stepper").innerHTML = S.replay.steps.map((_, i) => `<button data-step="${i}" aria-label="Step ${i + 1}">${i + 1}</button>`).join("");
+  $("#stepper").innerHTML = S.replay.steps.map((_, i) => `<button data-step="${i}" data-demo="replay-step" aria-label="Step ${i + 1}">${i + 1}</button>`).join("");
   S.graphMode = "replay";
   const nodes = S.replay.nodes.map((n) => ({ id: n.id, short: n.name, label: n.label }));
   const links = S.replay.steps.filter((s) => s.edge).map((s) => ({ source: s.edge[0], target: s.edge[1], key: s.edge.join("|") }));

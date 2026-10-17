@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainBreaker outro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0f17; color: #e5e7eb; font-family: Inter, system-ui, sans-serif; }
+    body { display: grid; place-items: center; overflow: hidden; }
+    .wrap { text-align: center; padding: 0 60px; animation: rise 1s ease-out both; }
+    .logo { font-size: 44px; font-weight: 800; margin-bottom: 26px; }
+    .logo b { color: #ef4444; }
+    .tag { font-size: 64px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+    .tag em { font-style: normal; color: #22d3ee; }
+    .links { margin-top: 44px; font: 400 26px/1.7 "JetBrains Mono", monospace; color: #cbd5e1; animation: rise 1s .4s ease-out both; }
+    .links span { color: #9ca3af; }
+    .foot { position: fixed; bottom: 48px; left: 0; right: 0; text-align: center; font: 600 20px/1 "JetBrains Mono", monospace;
+            color: #22d3ee; letter-spacing: .04em; }
+    .glow { position: fixed; inset: 0; background: radial-gradient(800px 400px at 50% 45%, rgba(34,211,238,.10), transparent 70%); }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="wrap">
+    <div class="logo">⛓ Chain<b>Breaker</b></div>
+    <div class="tag">The graph finds what <em>grep</em> can't.</div>
+    <div class="links" id="links"></div>
+  </div>
+  <div class="foot">Built on FalkorDB · Graph Hacks Track 01</div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const rows = [];
+    if (p.get("live")) rows.push(`<span>live</span> ${p.get("live")}`);
+    if (p.get("repo")) rows.push(`<span>code</span> ${p.get("repo")}`);
+    document.getElementById("links").innerHTML = rows.map((r) => `<div>${r}</div>`).join("");
+  </script>
+</body>
+</html>
