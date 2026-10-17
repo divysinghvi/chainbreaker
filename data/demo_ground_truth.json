@@ -2,7 +2,7 @@
   "org": "chainbreaker-lab-divy",
   "advisory_action": "chainbreaker-lab-divy/cb-changed-files",
   "known_good_sha": "67f879ce918b4026fbcd76c67c8811a02aa3f6c8",
-  "lint_reporter_v1_sha": "06359d991c87f5cced589f7e01029d1bb5f94082",
+  "lint_reporter_v1_sha": "179f2d2e3cd7c19156c2b13506d2e8f6fa976811",
   "exposed": {
     "chainbreaker-lab-divy/web-frontend:.github/workflows/pr-check.yml": {
       "depth": 1,
