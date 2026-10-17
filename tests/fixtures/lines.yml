@@ -1,0 +1,17 @@
+name: lines
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo uses: nothing'
+      - uses: actions/checkout@v4
+      - uses: "actions/setup-node@v4.1"
+      - uses: ${{ matrix.action }}
+      - run: echo ${{ secrets.NPM_TOKEN }} ${{secrets.GITHUB_TOKEN}}
+  again:
+    steps:
+      - uses: actions/checkout@v4 # same action, second site
+  call:
+    # a local reusable workflow
+    uses: ./.github/workflows/reusable.yml
