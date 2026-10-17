@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChainBreaker</title>
+  <meta name="description" content="Blast radius and minimum-cut fixes for GitHub Actions supply-chain attacks, on FalkorDB.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/force-graph@1.52.0/dist/force-graph.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo" aria-hidden="true">⛓</span><span>Chain<b>Breaker</b></span></div>
+  <nav class="datasets" aria-label="Dataset">
+    <div class="pills" role="tablist">
+      <button class="pill" data-ds="demo" role="tab">Demo org</button>
+      <button class="pill" data-ds="cncf" role="tab">CNCF <span class="muted" id="cncf-count">(1k repos)</span></button>
+      <button class="pill" data-ds="replay-tj-2025" role="tab">tj-actions 2025 replay</button>
+    </div>
+    <span class="caption">each is its own FalkorDB graph</span>
+  </nav>
+  <div class="stats" id="stats" aria-live="polite"></div>
+  <div class="counter mono" id="counter" title="FalkorDB time for the last request">FalkorDB: – ms · – queries</div>
+</header>
+
+<main class="layout">
+  <section class="panel left" aria-labelledby="incident-h">
+    <h2 id="incident-h">Incident</h2>
+    <div id="incident">
+      <label class="lbl" for="action-q">Action</label>
+      <div class="search">
+        <input id="action-q" class="mono" autocomplete="off" placeholder="owner/repo" aria-autocomplete="list" aria-controls="action-list">
+        <ul id="action-list" class="suggest" role="listbox" hidden></ul>
+      </div>
+      <button id="compromise" class="btn danger">Simulate compromise</button>
+      <p class="hint" id="adv-info"></p>
+
+      <div class="depth" id="depth-box" hidden>
+        <label class="lbl" for="depth">Traversal depth <b id="depth-val" class="mono">1</b> <span class="muted">hops of <code>uses:</code></span></label>
+        <input id="depth" type="range" min="1" max="6" value="1">
+        <div class="ticks mono" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+      </div>
+
+      <div class="cards" id="cards" hidden>
+        <div class="card"><div class="num" id="n-grep">0</div><div class="cap">grep finds <span class="muted">(depth 1)</span></div></div>
+        <div class="card hl"><div class="num" id="n-total">0</div><div class="cap">ChainBreaker finds</div></div>
+        <div class="card"><div class="num" id="n-hidden">0</div><div class="cap">hidden <span class="muted">(depth ≥ 2)</span></div></div>
+        <div class="card"><div class="num" id="n-pinned">0</div><div class="cap">pinned to a SHA and still exposed</div></div>
+      </div>
+      <div class="chips" id="sev-chips"></div>
+
+      <div class="list-head" id="list-head" hidden>
+        <h3>Exposed pipelines</h3>
+        <div class="sort" role="group" aria-label="Sort">
+          <button class="mini on" data-sort="sev">severity</button><button class="mini" data-sort="depth">depth</button>
+        </div>
+      </div>
+      <ul class="exposed" id="exposed"></ul>
+    </div>
+    <div id="replay-left" hidden>
+      <p>March 2025: one leaked token, then a chain of actions depending on actions, reached a target that never referenced the compromised action directly.</p>
+      <p class="muted">Graph <code class="mono">cb:replay-tj-2025</code>. Step through it in the Replay tab.</p>
+    </div>
+  </section>
+
+  <section class="panel center" aria-label="Dependency graph">
+    <div class="legend">
+      <span><i class="dot red"></i>compromised</span><span><i class="dot violet"></i>intermediate on exposed path</span>
+      <span><i class="sq orange"></i>HIGH</span><span><i class="sq amber"></i>MED</span><span><i class="sq yellow"></i>LOW</span>
+      <span><i class="sq grey"></i>safe</span><span><i class="sq green"></i>fixed</span><span><i class="ln cyan"></i>min-cut</span>
+      <span><i class="ln dash"></i>mutable ref</span>
+    </div>
+    <div id="graph" class="graph"></div>
+    <div class="graph-note" id="graph-note" hidden></div>
+    <div class="empty" id="graph-empty">Pick an action and simulate a compromise. Infection flows left → right, from the compromised action to every pipeline that runs it.</div>
+    <aside class="drawer" id="drawer" hidden aria-labelledby="drawer-h">
+      <div class="drawer-head"><h3 id="drawer-h" class="mono"></h3><button class="x" id="drawer-x" aria-label="Close">×</button></div>
+      <div id="drawer-body"></div>
+    </aside>
+  </section>
+
+  <section class="panel right" aria-label="Fix, agent, leaderboard, replay">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="fix" role="tab">Fix</button>
+      <button class="tab" data-tab="agent" role="tab">Agent</button>
+      <button class="tab" data-tab="leader" role="tab">Leaderboard</button>
+      <button class="tab" data-tab="replay" role="tab">Replay</button>
+    </div>
+
+    <div class="tabpane" id="tab-fix">
+      <div class="seg" role="group" aria-label="Targets">
+        <button class="mini on" data-targets="all">All exposed</button><button class="mini" data-targets="high">High-value only</button>
+      </div>
+      <button id="plan" class="btn primary" disabled>Compute minimal fix</button>
+      <div id="plan-out"></div>
+      <div id="admin" class="admin" hidden>
+        <h3>Act in the demo org <span class="muted">(admin)</span></h3>
+        <label class="lbl" for="admin-token">Admin token</label>
+        <input id="admin-token" type="password" class="mono" autocomplete="off" placeholder="X-Admin-Token">
+        <div class="row">
+          <button id="open-prs" class="btn" disabled>Open PRs</button>
+          <button id="merge" class="btn" disabled>Merge &amp; continue</button>
+        </div>
+        <div class="row">
+          <button id="rescan" class="btn ghost">Rescan</button>
+          <button id="reset" class="btn ghost">Reset demo</button>
+        </div>
+        <ol class="log mono" id="admin-log"></ol>
+      </div>
+    </div>
+
+    <div class="tabpane" id="tab-agent" hidden>
+      <div class="prompts" id="prompts"></div>
+      <div class="timeline" id="timeline" aria-live="polite"></div>
+      <form id="ask" class="ask">
+        <label class="sr" for="ask-q">Ask the agent</label>
+        <input id="ask-q" placeholder="Ask about this dataset…" autocomplete="off">
+        <button class="btn primary" id="ask-go">Ask</button>
+      </form>
+      <p class="hint">The agent only calls fixed, parameterized tools (no LLM-written Cypher). It can request approval but never opens a PR itself.</p>
+    </div>
+
+    <div class="tabpane" id="tab-leader" hidden>
+      <p class="hint">Most load-bearing actions: <code>algo.pageRank</code> over <code>USES</code> edges, plus transitive reach computed in FalkorDB.</p>
+      <div id="leader"></div>
+    </div>
+
+    <div class="tabpane" id="tab-replay" hidden>
+      <div class="stepper" id="stepper"></div>
+      <p class="replay-cap" id="replay-cap" aria-live="polite"></p>
+      <div class="row"><button class="btn ghost" id="rp-prev">← Prev</button><button class="btn" id="rp-next">Next →</button></div>
+      <p class="hint">Source: <a id="replay-src" target="_blank" rel="noopener">Unit 42</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">Public data + synthetic demo org · Aggregates only for CNCF · Built for Graph Hacks (Track 01)</footer>
+<script src="app.js"></script>
+</body>
+</html>
