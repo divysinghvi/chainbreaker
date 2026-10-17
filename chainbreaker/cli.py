@@ -282,5 +282,27 @@ def mcp_selftest() -> None:
     asyncio.run(main())
 
 
+@app.command()
+def ask(question: str = typer.Argument(...), dataset: str = typer.Option("demo", "--dataset")) -> None:
+    """Ask the agent; prints tool calls, results and the grounded final answer as they stream."""
+    from .agent.loop import run_agent
+    for ev in run_agent(dataset, question):
+        t = ev["type"]
+        if t == "tool_call":
+            typer.echo(f"→ {ev['name']}({json.dumps(ev['args'])})")
+        elif t == "tool_result":
+            typer.echo(f"  ← {ev['summary']}  [{ev['ms']} ms, outcome {ev['outcome']}]")
+        elif t == "approval":
+            typer.echo(f"  ⏸ awaiting human approval for {ev['plan_id']}: {ev['summary']}")
+        elif t == "grounding_retry":
+            typer.echo(f"  ↻ grounding retry, unverified: {ev['unverified']}")
+        elif t == "final":
+            g = ev["grounding"]
+            typer.echo(f"\n{ev['text']}\n\n[outcome {ev['outcome']} · grounded {g['verified']}/{g['total']}"
+                       f"{' · unverified ' + str(g['unverified']) if g['unverified'] else ''}]")
+        else:
+            typer.echo(f"ERROR: {ev['message']}", err=True)
+
+
 if __name__ == "__main__":
     app()

@@ -1,0 +1,17 @@
+{
+  "source": "https://unit42.paloaltonetworks.com/github-actions-supply-chain-attack/",
+  "nodes": [
+    {"id": "spotbugs-token", "label": "Token", "name": "Leaked SpotBugs maintainer token"},
+    {"id": "reviewdog/action-setup@v1", "label": "ActionRef", "name": "reviewdog/action-setup@v1"},
+    {"id": "tj-actions/eslint-changed-files", "label": "Action", "name": "tj-actions/eslint-changed-files"},
+    {"id": "tj-actions/changed-files", "label": "Action", "name": "tj-actions/changed-files (used by 23,000+ repos)"},
+    {"id": "coinbase/agentkit", "label": "Repo", "name": "coinbase/agentkit (initial target)"}
+  ],
+  "steps": [
+    {"edge": ["spotbugs-token", "reviewdog/action-setup@v1"], "caption": "A leaked token from the SpotBugs project is used to compromise reviewdog/action-setup@v1."},
+    {"edge": ["reviewdog/action-setup@v1", "tj-actions/eslint-changed-files"], "caption": "tj-actions/eslint-changed-files depends on reviewdog/action-setup, so the compromise moves one hop."},
+    {"edge": ["tj-actions/eslint-changed-files", "tj-actions/changed-files"], "caption": "From there the attackers reach tj-actions/changed-files, an action used by 23,000+ repositories."},
+    {"edge": ["tj-actions/changed-files", "coinbase/agentkit"], "caption": "The initial target was Coinbase's agentkit repository."},
+    {"edge": null, "caption": "Most victims never referenced the compromised action directly. That hidden depth is what ChainBreaker maps."}
+  ]
+}

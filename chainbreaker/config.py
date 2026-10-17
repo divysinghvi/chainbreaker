@@ -10,6 +10,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 DEMO_ORG = os.getenv("DEMO_ORG", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+ANTHROPIC_WORKSPACE_ID = os.getenv("ANTHROPIC_WORKSPACE_ID", "")  # needed when the API key is not workspace-scoped
 FALKORDB_HOST = os.getenv("FALKORDB_HOST", "localhost")
 FALKORDB_PORT = int(os.getenv("FALKORDB_PORT", "6379"))
 FALKORDB_PASSWORD = os.getenv("FALKORDB_PASSWORD", "chainbreaker")
