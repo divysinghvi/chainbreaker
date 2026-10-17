@@ -8,7 +8,7 @@
     {"id": "02", "title": "Hook", "caption": "March 2025 · one leaked token → 23,000+ repos", "min_hold_s": 12,
      "narration": "In March 2025, one leaked token moved through a chain of GitHub Actions and compromised tj-actions/changed-files, an action used by more than twenty-three thousand repositories. Every team asked the same question: are we affected?"},
     {"id": "03", "title": "Compromise", "caption": "Grep finds {depth1} pipelines", "min_hold_s": 6,
-     "narration": "Here's a demo org with twelve pipelines. Say one action, cb-changed-files, just got compromised. Search our workflow files for it, like grep would, and you find {depth1} pipelines."},
+     "narration": "Here's a demo org with {pipelines} pipelines. Say one action, cb-changed-files, just got compromised. Search our workflow files for it, like grep would, and you find {depth1} pipelines."},
     {"id": "04", "title": "Depth", "caption": "The graph finds {total} · {hidden} hidden", "min_hold_s": 6,
      "narration": "But actions use other actions. Follow the chain four hops deep in the graph, and it's {total}. {hidden} of them never mention the hacked action at all."},
     {"id": "05", "title": "Path", "caption": ["Every answer comes with its path", "Pinned to a commit, still exposed"], "min_hold_s": 8,

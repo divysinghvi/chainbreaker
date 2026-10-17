@@ -80,7 +80,8 @@ class Screencast:
         lines.append(f"file '{fr[-1][1]}'")
         (self.dir / "list.ffconcat").write_text("\n".join(lines) + "\n")
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i",
-                        str(self.dir / "list.ffconcat"), "-vf", "scale=1920:1080:flags=lanczos,fps=30",
+                        str(self.dir / "list.ffconcat"), "-t", f"{end - start:.3f}",  # concat holds the last image too long
+                        "-vf", "scale=1920:1080:flags=lanczos,fps=30",
                         "-c:v", "libx264", "-preset", "fast", "-crf", "14", "-pix_fmt", "yuv420p", str(out)], check=True)
 
 
@@ -211,6 +212,7 @@ def s03(r):
     with r.scene("03") as s:
         r.move_click(W("ds-demo"))
         r.page.wait_for_selector(f"{W('stats')}:has-text('repos')")
+        r.values["pipelines"] = r.page.evaluate("async () => (await (await fetch('/api/demo/stats')).json()).workflows_entry")
         r.type_slow(W("action-input"), ACTION)
         r.page.keyboard.press("Escape")
         r.move_click(W("simulate"), hold=1.6)
@@ -292,6 +294,8 @@ def s08(r):
         r.values.update(changes=int(m.group(1)), protected=int(m.group(2)),
                         engine_short=r.page.locator(W("engine-badge")).text_content().strip())
         r.caption(C.captions(s, r.values)[0])
+        lint = r.page.locator(".fix", has_text="cb-lint-reporter:action.yml").first.text_content()
+        r.values["lint_protects"] = int(re.search(r"protects (\d+)", lint).group(1))
         r.spot(W("fix-headline"), hold=2.2)
         r.spot(W("engine-badge"), pad=6, hold=1.8)
         r.page.evaluate("() => __demo.spotlight(null)")
@@ -329,7 +333,8 @@ def s09(r):
             b = gp.locator("[data-demo=gh-diff-line]").first.bounding_box()
             gp.mouse.move(b["x"] + 220, b["y"] + b["height"] / 2, steps=25)
             gp.evaluate("() => __demo.spotlight('[data-demo=gh-diff-line]', 6)")
-        gp.evaluate("(t) => __demo.caption(t)", "One pinned line in a shared action protects 8 pipelines")
+        gp.evaluate("(t) => __demo.caption(t)",
+                    f"One pinned line in a shared action protects {r.values['lint_protects']} pipelines")
         gp.wait_for_timeout(6000)
         r.values["gh_diff_spotlit"] = found
         r.mark("tab_close", scene="09")
@@ -348,6 +353,8 @@ def s10(r):
             " && !document.querySelector('[data-demo=merge]').textContent.includes('…')", timeout=360_000))
         r.pause(1.6)
         r.values["total_after"] = r.num("card-total")
+        if r.values["total_after"] != 0:
+            raise SystemExit(f"rescan left {r.values['total_after']} exposed; the narration says nothing is exposed")
         r.caption(C.captions(s, r.values)[0])
         r.spot(W("card-total"), hold=2.5)
 
