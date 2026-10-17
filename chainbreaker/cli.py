@@ -117,5 +117,19 @@ def stats(dataset: str = typer.Option(..., "--dataset")) -> None:
     _out(stats_fn(dataset))
 
 
+@app.command("seed-demo")
+def seed_demo() -> None:
+    """Create the synthetic demo org repos, tags and ground truth (idempotent)."""
+    from .demo.seed import seed
+    seed(typer.echo)
+
+
+@app.command("reset-demo")
+def reset_demo() -> None:
+    """Close ChainBreaker PRs, restore every scenario file and tag, rewrite the ground truth."""
+    from .demo.seed import reset
+    reset(typer.echo)
+
+
 if __name__ == "__main__":
     app()

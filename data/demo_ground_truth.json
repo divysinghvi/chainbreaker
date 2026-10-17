@@ -1,0 +1,78 @@
+{
+  "org": "chainbreaker-lab-divy",
+  "advisory_action": "chainbreaker-lab-divy/cb-changed-files",
+  "known_good_sha": "67f879ce918b4026fbcd76c67c8811a02aa3f6c8",
+  "lint_reporter_v1_sha": "79d4e032d301699f1892647128f4eba8bce3cfb1",
+  "exposed": {
+    "chainbreaker-lab-divy/web-frontend:.github/workflows/pr-check.yml": {
+      "depth": 1,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/docs-site:.github/workflows/docs.yml": {
+      "depth": 1,
+      "severity": "LOW"
+    },
+    "chainbreaker-lab-divy/analytics:.github/workflows/lint.yml": {
+      "depth": 2,
+      "severity": "LOW"
+    },
+    "chainbreaker-lab-divy/mobile-app:.github/workflows/build.yml": {
+      "depth": 2,
+      "severity": "HIGH",
+      "pinned_but_exposed": true
+    },
+    "chainbreaker-lab-divy/payments-api:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/auth-service:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/orders-api:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/billing-worker:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/search-api:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/notifications:.github/workflows/deploy.yml": {
+      "depth": 3,
+      "severity": "HIGH"
+    },
+    "chainbreaker-lab-divy/infra-terraform:.github/workflows/plan.yml": {
+      "depth": 4,
+      "severity": "HIGH"
+    }
+  },
+  "not_exposed": [
+    "chainbreaker-lab-divy/data-pipeline:.github/workflows/etl.yml"
+  ],
+  "exposed_count": 11,
+  "depth1_count": 2,
+  "hidden_count": 9,
+  "high_exposed_count": 9,
+  "pinned_but_exposed_count": 1,
+  "min_cut_high": 3,
+  "min_cut_all": 4,
+  "cut_high": [
+    {
+      "type": "PIN",
+      "file": "chainbreaker-lab-divy/web-frontend:.github/workflows/pr-check.yml"
+    },
+    {
+      "type": "PIN",
+      "file": "chainbreaker-lab-divy/cb-lint-reporter:action.yml"
+    },
+    {
+      "type": "REPIN",
+      "file": "chainbreaker-lab-divy/mobile-app:.github/workflows/build.yml"
+    }
+  ],
+  "after_fix_exposed_count": 0
+}
