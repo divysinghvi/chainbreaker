@@ -103,5 +103,19 @@ def crawl(dataset: str = typer.Option(..., "--dataset"), orgs: str = typer.Optio
     typer.echo(crawl_mod.summary(out))
 
 
+@app.command()
+def load(dataset: str = typer.Option(..., "--dataset")) -> None:
+    """Load data/cache/<dataset>/crawl.json into graph cb:<dataset>."""
+    from .ingest.load import load_file
+    typer.echo(load_file(dataset))
+
+
+@app.command()
+def stats(dataset: str = typer.Option(..., "--dataset")) -> None:
+    """Counts per label, USES edges, mutable-ref share, crawl date."""
+    from .analysis.leaderboard import stats as stats_fn
+    _out(stats_fn(dataset))
+
+
 if __name__ == "__main__":
     app()
