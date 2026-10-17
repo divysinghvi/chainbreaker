@@ -288,6 +288,8 @@ def ask(question: str = typer.Argument(...), dataset: str = typer.Option("demo",
     from .agent.loop import run_agent
     for ev in run_agent(dataset, question):
         t = ev["type"]
+        if t == "chat":
+            continue
         if t == "tool_call":
             typer.echo(f"→ {ev['name']}({json.dumps(ev['args'])})")
         elif t == "tool_result":

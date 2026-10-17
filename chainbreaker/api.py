@@ -263,7 +263,7 @@ def reset(x_admin_token: str | None = Header(None)) -> dict:
 class AgentBody(BaseModel):
     dataset: str = "demo"
     message: str
-    history: list[dict] = []
+    chat_id: str | None = None  # server-side chat history; omit to start a new chat
 
 
 @app.post("/api/agent")
@@ -275,7 +275,7 @@ def agent(body: AgentBody, request: Request) -> StreamingResponse:
 
     def events():
         db.reset_stats()
-        for ev in run_agent(ds, body.message, body.history[-10:]):
+        for ev in run_agent(ds, body.message, body.chat_id):
             yield f"data: {json.dumps(ev | db.get_stats(), default=str)}\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream",

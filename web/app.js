@@ -11,7 +11,7 @@ const SEV_ORDER = { HIGH: 0, MED: 1, LOW: 2 };
 const S = {
   ds: "demo", org: "", publicMode: false, adv: null, action: null, depth: 1, blast: null, viz: null,
   sort: "sev", targets: "all", plan: null, cut: new Set(), fixed: new Set(), wasExposed: new Set(),
-  history: [], replay: null, step: 0, graphMode: "viz", showSafe: false, big: false,
+  chatId: null, replay: null, step: 0, graphMode: "viz", showSafe: false, big: false,
 };
 const BIG = 150;
 
@@ -218,7 +218,7 @@ async function selectDataset(ds) {
   $("#incident").hidden = replay; $("#replay-left").hidden = !replay;
   if (replay) { selectTab("replay"); await showReplay(); return; }
   if ($("#tab-replay").hidden === false) selectTab("fix");
-  Object.assign(S, { adv: null, blast: null, viz: null, plan: null, cut: new Set(), fixed: new Set(), wasExposed: new Set(), history: [] });
+  Object.assign(S, { adv: null, blast: null, viz: null, plan: null, cut: new Set(), fixed: new Set(), wasExposed: new Set(), chatId: null });
   $("#timeline").innerHTML = ""; $("#plan-out").innerHTML = ""; $("#admin-log").innerHTML = "";
   ["#depth-box", "#cards", "#list-head"].forEach((s) => ($(s).hidden = true));
   $("#exposed").innerHTML = ""; $("#sev-chips").innerHTML = ""; $("#adv-info").textContent = "";
@@ -430,7 +430,7 @@ async function ask(q) {
   const pending = {};
   try {
     const res = await fetch("/api/agent", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dataset: S.ds, message: q, history: S.history.slice(-8) }) });
+      body: JSON.stringify({ dataset: S.ds, message: q, chat_id: S.chatId }) });
     if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || res.statusText); }
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = "";
@@ -453,7 +453,9 @@ const ICON = { find_action: "🔎", simulate_compromise: "☣", blast_radius: "�
 
 function handleEvent(ev, pending, q) {
   setCounter(ev.graph_ms, ev.queries);
-  if (ev.type === "tool_call") {
+  if (ev.type === "chat") {
+    S.chatId = ev.chat_id;
+  } else if (ev.type === "tool_call") {
     pending[ev.name] = evCard("call", `<span class="tool">${ICON[ev.name] || "•"} ${esc(ev.name)}</span><div class="args">${esc(JSON.stringify(ev.args))}</div><div class="res muted">running…</div>`);
   } else if (ev.type === "tool_result") {
     const c = pending[ev.name];
@@ -473,7 +475,6 @@ function handleEvent(ev, pending, q) {
     evCard("final", `<div class="answer">${mdLite(ev.text)}</div>${chips}
       <span class="ground ${warn ? "warn" : ""}">${warn ? "⚠" : "✓"} Grounded: ${g.verified}/${g.total} names verified in FalkorDB${warn ? ` · unverified: ${esc(g.unverified.join(", "))}` : ""}</span>
       <span class="muted" style="font-size:11px"> · ${esc(ev.outcome)}</span>`);
-    S.history.push({ role: "user", content: q }, { role: "assistant", content: ev.text });
   } else if (ev.type === "error") {
     evCard("err", esc(ev.message));
   }
@@ -575,6 +576,7 @@ function wire() {
   $("#merge").onclick = mergeContinue;
   $("#rescan").onclick = rescan;
   $("#reset").onclick = resetDemo;
+  $("#new-chat").onclick = () => { S.chatId = null; $("#timeline").innerHTML = ""; $("#ask-q").focus(); };
   $("#prompts").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) ask(b.textContent); });
   $("#ask").addEventListener("submit", (e) => { e.preventDefault(); ask($("#ask-q").value); });
   $("#timeline").addEventListener("click", (e) => { const c = e.target.closest("[data-wf]"); if (c) openDrawer(c.dataset.wf); });

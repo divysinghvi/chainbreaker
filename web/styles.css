@@ -140,6 +140,7 @@ input:focus { border-color: var(--cyan); outline: none; }
 .log a { color: var(--cyan); }
 
 /* agent */
+.agent-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
 .prompts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .prompts button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; cursor: pointer; font-size: 12px; min-height: 30px; }
 .prompts button:hover { border-color: var(--cyan); }

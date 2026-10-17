@@ -1,6 +1,9 @@
 """Anthropic tool-use loop -> event stream (PLAN CP10). Append-only history; grounding check before the answer."""
 import json
+import secrets
+import threading
 import time
+from collections import OrderedDict
 from collections.abc import Iterator
 
 import anthropic
@@ -14,6 +17,29 @@ MAX_ROUNDS = 8
 MAX_TOKENS = 8000
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 PATH_TOOLS = {"explain_exposure", "blast_radius"}
+MAX_CHATS = 200
+
+# Each chat keeps the *full* message list (tool calls, tool results, thinking blocks), so a follow-up question
+# sees the evidence behind earlier answers instead of bare text it would then disown.
+# ponytail: in-memory chats, lost on restart; persist them in FalkorDB if chats must survive deploys
+_chats: OrderedDict[str, dict] = OrderedDict()
+_lock = threading.Lock()
+
+
+def _load_chat(ds: str, chat_id: str | None) -> tuple[str, dict]:
+    with _lock:
+        c = _chats.get(chat_id) if chat_id else None
+        if c is None or c["ds"] != ds:
+            return secrets.token_hex(8), {"ds": ds, "messages": [], "known": []}
+        return chat_id, {"ds": ds, "messages": list(c["messages"]), "known": list(c["known"])}
+
+
+def _save_chat(chat_id: str, chat: dict) -> None:
+    with _lock:
+        _chats[chat_id] = chat
+        _chats.move_to_end(chat_id)
+        while len(_chats) > MAX_CHATS:
+            _chats.popitem(last=False)
 
 
 def _summary(name: str, r: dict) -> tuple[str, int]:
@@ -76,14 +102,15 @@ def _action_of(results: list[tuple[str, dict]]) -> str:
     return ""
 
 
-def run_agent(ds: str, message: str, history: list[dict] | None = None) -> Iterator[dict]:
+def run_agent(ds: str, message: str, chat_id: str | None = None) -> Iterator[dict]:
     try:
         headers = {"anthropic-workspace-id": config.ANTHROPIC_WORKSPACE_ID} if config.ANTHROPIC_WORKSPACE_ID else None
         client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY or None, default_headers=headers)
         tools = anthropic_schemas()
-        msgs: list = [{"role": h["role"], "content": str(h["content"])} for h in (history or [])
-                      if h.get("role") in ("user", "assistant") and h.get("content")]
-        msgs.append({"role": "user", "content": message})
+        chat_id, chat = _load_chat(ds, chat_id)
+        yield {"type": "chat", "chat_id": chat_id, "turn": sum(1 for m in chat["messages"]
+                                                                if m["role"] == "user" and isinstance(m["content"], str))}
+        msgs: list = chat["messages"] + [{"role": "user", "content": message}]
         results: list[tuple[str, dict]] = []
         retried = False
         for _ in range(MAX_ROUNDS):
@@ -114,7 +141,8 @@ def run_agent(ds: str, message: str, history: list[dict] | None = None) -> Itera
                 msgs.append({"role": "user", "content": blocks})
                 continue
             text = "".join(b.text for b in resp.content if b.type == "text").strip()
-            known = [s for _, r in results for s in validator.strings(r)] + [message]
+            # names verified in earlier turns of this chat stay verified
+            known = chat["known"] + [s for _, r in results for s in validator.strings(r)] + [message]
             g = validator.check(text, known)
             if g["unverified"] and not retried:
                 retried = True
@@ -124,7 +152,9 @@ def run_agent(ds: str, message: str, history: list[dict] | None = None) -> Itera
                 continue
             text = validator.scrub(text, g["unverified"])
             outcome = _outcome(results)
-            yield {"type": "final", "text": text, "outcome": outcome, "grounding": g, "paths": _paths(results)}
+            _save_chat(chat_id, {"ds": ds, "messages": msgs, "known": known})
+            yield {"type": "final", "text": text, "outcome": outcome, "grounding": g, "paths": _paths(results),
+                   "chat_id": chat_id}
             if outcome != "answered_from_memory" and results:
                 memory.save_finding(ds, message, text, _action_of(results))
             return
