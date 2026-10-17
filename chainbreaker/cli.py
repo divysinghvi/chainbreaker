@@ -173,5 +173,34 @@ def path(dataset: str = typer.Option(..., "--dataset"), advisory: str = typer.Op
                    f"\n     -> {h['to']}{'  (pinned)' if h['pinned'] else ''}")
 
 
+def _print_plan(p: dict) -> None:
+    typer.echo(f"{p['id']} ({p['targets']}): {p['cut_size']} changes protect {p['protected']} pipelines"
+               f" (naive: {p['naive']}) · engine {p['engine']} · maxFlow {p['max_flow']} · copy {p.get('copy_ms')} ms")
+    if p.get("engine_note"):
+        typer.echo(f"  note: {p['engine_note']}")
+    for f in p["fixes"]:
+        typer.echo(f"  {f['type']:<6} {f['file_repo']}:{f['file_path']}:{','.join(map(str, f['lines']))}"
+                   f"  {f['old_uses']} -> {f['new_uses'] or '(at apply time)' if f['type'] == 'REPIN' else f['new_uses'] or '(manual)'}"
+                   f"  protects {f['protects']} · phase {f['phase']}")
+
+
+@app.command()
+def plan(dataset: str = typer.Option(..., "--dataset"), advisory: str = typer.Option(..., "--advisory"),
+         targets: str = typer.Option("all", "--targets")) -> None:
+    """Minimum set of uses: line changes that cut every attack path (min-cut)."""
+    from .analysis.fix import plan_fix
+    p = plan_fix(dataset, advisory, targets)
+    if p is None:
+        raise typer.Exit(1)
+    _print_plan(p)
+
+
+@app.command()
+def simulate(dataset: str = typer.Option(..., "--dataset"), plan: str = typer.Option(..., "--plan")) -> None:
+    """What-if: apply the plan's cut on a GRAPH.COPY scratch graph and re-run blast."""
+    from .analysis.fix import simulate_fix
+    _out(simulate_fix(dataset, plan))
+
+
 if __name__ == "__main__":
     app()

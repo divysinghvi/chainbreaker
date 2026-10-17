@@ -118,7 +118,10 @@ YIELD nodes, edges, edgeFlows, maxFlow
 RETURN nodes, edges, edgeFlows, maxFlow"""
 EDGES_EXPORT = """MATCH (s)-[e:USES]->(d)
 RETURN id(e) AS eid, id(s) AS sid, id(d) AS did, e.cap AS cap, s.id AS s_key, d.id AS d_key,
-       labels(s)[0] AS s_label, labels(d)[0] AS d_label"""
+       labels(s)[0] AS s_label, labels(d)[0] AS d_label,
+       e.uses AS uses, e.file_repo AS file_repo, e.file_path AS file_path, e.lines AS lines"""
+SOURCE_NIDS = "MATCH (w:Workflow) WHERE w.id IN $ids RETURN id(w) AS nid"
+SINK_NIDS = "MATCH (:Advisory {id: $adv})-[:COMPROMISES]->(r) RETURN id(r) AS nid"
 DELETE_EDGE = "MATCH (s:{sl} {{id: $s}})-[e:USES]->(d:{dl} {{id: $d}}) DELETE e"  # labels from USES_LABELS
 
 # ---------- fix plans ----------

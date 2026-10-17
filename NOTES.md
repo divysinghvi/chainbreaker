@@ -14,6 +14,9 @@
 
 - **Invalid `uses:` values are real:** the CP2 sample crawl's 68 "invalid" sites are literal `uses: $/.github/actions/...` strings in upstream workflow files (not a parser bug). They are counted and skipped.
 - **Crawl ids:** action ids are lowercase (owner/repo/path) but the original case is kept for fetching (`raw_path`), because git tree paths are case-sensitive. Workflow file paths keep their case in ids (they are file names). A local reusable call (`./.github/workflows/x.yml`) from a HEAD workflow points at that HEAD Workflow node itself rather than a duplicate `@HEAD` node.
+- **Pinned-but-exposed uses `coalesce(nodes(p)[1].pinned, false)`.** A first hop into a HEAD workflow (local reusable call) has no `pinned` property, and `null <> true` is null, so the plan's literal Q-PINNED would count such workflows as pinned.
+- **Fix `new_uses` keeps the original casing**: PIN builds `old_uses` up to the last `@` + the known-good SHA, instead of the lowercased action id (paths are case-sensitive).
+- **Scratch sweep is per process**: the `atexit` sweep deletes only scratch graphs this process created, so a CLI run can't delete an API server's in-flight what-if.
 - **BFS batches are sorted by node id** so the per-query disk cache hits on re-runs (Python string hashing is randomized per process, so set order would change every run).
 
 ## FalkorDB capabilities
@@ -34,4 +37,17 @@ org chainbreaker-lab-divy: OK
 ANTHROPIC_API_KEY: present
 ```
 
+### `algo.maxFlow` output shape (CP6 probe, FalkorDB 4.22.1)
+
+Q-PROBE (s→a, s→b cap 1; a→t, b→t cap 5) returns **one row** with columns `nodes, edges, edgeFlows, maxFlow`:
+`nodes` = list of Node objects on flow paths, `edges` = list of Edge objects carrying flow (their `.id` equals
+`id(e)` in Cypher), `edgeFlows` = list of floats aligned 1:1 with `edges`, `maxFlow` = float (`2.0`).
+`parse_maxflow()` maps flows by edge id; edges missing from the list have flow 0. Multi-source / multi-target
+lists work as documented. The residual-graph cut passes both validations on the demo, so the **engine that ran is
+`falkordb.algo.maxFlow`** (networkx is only the fallback).
+
+`algo.SPpaths` also works with the plan's signature (`relDirection: 'outgoing'`, `maxLen`, `pathCount: 1`) and
+yields a `Path` whose nodes/edges are in hop order.
+
 ## Measured numbers
+
