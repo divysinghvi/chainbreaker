@@ -27,7 +27,7 @@
   #__d_chip.on { opacity: 1; }`;
 
   const el = {};
-  let spotSel = null, spotPad = 8;
+  let spotSel = null, spotPad = 8, spotN = 1;
 
   function ensure() {
     if (el.cursor || !document.body) return;
@@ -47,11 +47,13 @@
 
   function trackSpot() {
     if (spotSel) {
-      const t = document.querySelector(spotSel);
-      if (t) {
-        const r = t.getBoundingClientRect();
-        Object.assign(el.spot.style, { left: `${r.left - spotPad}px`, top: `${r.top - spotPad}px`,
-          width: `${r.width + 2 * spotPad}px`, height: `${r.height + 2 * spotPad}px` });
+      // union box of the first n matches (e.g. the top 5 leaderboard rows)
+      const rs = [...document.querySelectorAll(spotSel)].slice(0, spotN).map((t) => t.getBoundingClientRect());
+      if (rs.length) {
+        const l = Math.min(...rs.map((r) => r.left)), t = Math.min(...rs.map((r) => r.top));
+        const r = Math.max(...rs.map((x) => x.right)), b = Math.max(...rs.map((x) => x.bottom));
+        Object.assign(el.spot.style, { left: `${l - spotPad}px`, top: `${t - spotPad}px`,
+          width: `${r - l + 2 * spotPad}px`, height: `${b - t + 2 * spotPad}px` });
       }
     }
     requestAnimationFrame(trackSpot);
@@ -80,9 +82,9 @@
       el.cap.classList.toggle("top", opts.pos === "top");
       el.cap.classList.add("on");
     },
-    spotlight(selector, padding = 8) {
+    spotlight(selector, padding = 8, n = 1) {
       ensure();
-      spotSel = selector; spotPad = padding;
+      spotSel = selector; spotPad = padding; spotN = n;
       if (!selector || !document.querySelector(selector)) { el.spot.classList.remove("on"); spotSel = null; return false; }
       el.spot.classList.add("on");
       return true;

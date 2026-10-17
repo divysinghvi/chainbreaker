@@ -1,0 +1,33 @@
+{
+  "_doc": "Scene timings and text. {x} = a value read from the page at run time (video/raw/values.json). Text inside [[ ]] is dropped when any placeholder in it is unavailable. Narration time = words / 2.5 + 0.6 s; scene duration = max(action time, narration time, min_hold_s).",
+  "words_per_s": 2.5,
+  "pad_s": 0.6,
+  "scenes": [
+    {"id": "01", "title": "Intro", "caption": null, "min_hold_s": 5,
+     "narration": "This is ChainBreaker, an AI agent built on FalkorDB for Graph Hacks."},
+    {"id": "02", "title": "Hook", "caption": "March 2025 · one leaked token → 23,000+ repos", "min_hold_s": 12,
+     "narration": "In March 2025, one leaked token moved through a chain of GitHub Actions and compromised tj-actions/changed-files, an action used by more than twenty-three thousand repositories. Every team asked the same question: are we affected?"},
+    {"id": "03", "title": "Compromise", "caption": "Grep finds {depth1} pipelines", "min_hold_s": 6,
+     "narration": "Here's a demo org with twelve pipelines. Say one action, cb-changed-files, just got compromised. Search our workflow files for it, like grep would, and you find {depth1} pipelines."},
+    {"id": "04", "title": "Depth", "caption": "The graph finds {total} · {hidden} hidden", "min_hold_s": 6,
+     "narration": "But actions use other actions. Follow the chain four hops deep in the graph, and it's {total}. {hidden} of them never mention the hacked action at all."},
+    {"id": "05", "title": "Path", "caption": ["Every answer comes with its path", "Pinned to a commit, still exposed"], "min_hold_s": 8,
+     "narration": "Every result comes with its path, with the file and line for each hop. And mobile-app pinned to an exact commit, and it's still exposed, because the pinned code pulls the bad tag inside."},
+    {"id": "06", "title": "Agent", "caption": "Fixed FalkorDB tools · no LLM-written queries", "min_hold_s": 8,
+     "narration": "You can also just ask. The agent never writes database queries. It picks from fixed FalkorDB tools, shows the path behind its answer, and every name is checked against the graph."},
+    {"id": "07", "title": "Not in graph", "caption": "Not in the graph → it says so", "min_hold_s": 5,
+     "narration": "Ask about something that isn't there, and it says so instead of guessing."},
+    {"id": "08", "title": "Fix", "caption": "{changes} changes protect {protected} pipelines · {engine_short}", "min_hold_s": 8,
+     "narration": {
+       "maxflow": "Now the fix. Instead of patching {protected} pipelines one by one, ChainBreaker treats it as a min-cut and runs FalkorDB's max-flow algorithm. {changes} line changes protect all {protected}, and it proves it on a copy of the graph first.",
+       "fallback": "Now the fix. Instead of patching {protected} pipelines one by one, ChainBreaker treats it as a min-cut and computes the cut over the graph FalkorDB serves. {changes} line changes protect all {protected}, and it proves it on a copy of the graph first."}},
+    {"id": "09", "title": "PRs", "caption": "Real PRs in the demo org", "min_hold_s": 8,
+     "narration": "Then it acts. These are real pull requests, pinning the bad action to a known-good commit, including one line inside a shared action."},
+    {"id": "10", "title": "Rescan", "caption": "Rescan: {total_after} exposed", "min_hold_s": 5,
+     "narration": "Merge, move the tag, re-pin mobile-app, rescan… and nothing is exposed."},
+    {"id": "11", "title": "Scale", "caption": "{cncf_repos} real CNCF repos[[ · {hidden_pct} hidden from grep]]", "min_hold_s": 8,
+     "narration": "And it's not a toy. Here it is on {cncf_repos} real CNCF repositories. [[{hidden_pct} of exposure is invisible to grep, and ]]these are the actions the ecosystem leans on most."},
+    {"id": "12", "title": "Outro", "caption": null, "min_hold_s": 6,
+     "narration": "ChainBreaker. The graph finds what grep can't, and fixes it in the fewest moves."}
+  ]
+}
