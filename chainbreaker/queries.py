@@ -183,6 +183,8 @@ ALL_ACTION_IDS = "MATCH (a:Action) RETURN a.id AS id"
 
 # ---------- workflows ----------
 WORKFLOW_GET = "MATCH (w:Workflow {id: $wid}) RETURN w"
+WORKFLOW_SEARCH = """MATCH (w:Workflow) WHERE w.at_ref IS NULL AND w.id CONTAINS $q
+RETURN w.id AS id ORDER BY id LIMIT 5"""
 
 # ---------- memory ----------
 FINDING_CREATE = """CREATE (f:Finding {id: $id, question: $question, answer: $answer, created_at: $now,

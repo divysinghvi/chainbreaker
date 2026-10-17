@@ -256,5 +256,31 @@ def rescan_demo() -> None:
     _out(apply.rescan(typer.echo))
 
 
+@app.command("mcp-selftest")
+def mcp_selftest() -> None:
+    """Start the MCP server over stdio, list its tools and call blast_radius on the demo."""
+    import asyncio
+    import os
+    import sys
+
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    async def main() -> None:
+        params = StdioServerParameters(command=sys.executable, args=["-m", "chainbreaker.mcp_server"],
+                                       env=dict(os.environ), cwd=str(config.ROOT))
+        async with stdio_client(params) as (r, w), ClientSession(r, w) as s:
+            await s.initialize()
+            tools = (await s.list_tools()).tools
+            typer.echo(f"{len(tools)} tools: {', '.join(t.name for t in tools)}")
+            adv = await s.call_tool("simulate_compromise", {"action_id": f"{config.DEMO_ORG}/cb-changed-files"})
+            adv_id = json.loads(adv.content[0].text)["advisory_id"]
+            res = json.loads((await s.call_tool("blast_radius", {"advisory_id": adv_id})).content[0].text)
+            typer.echo(f"blast_radius({adv_id}): outcome {res['outcome']} · exposed {res['exposed_total']} · "
+                       f"grep depth-1 {res['grep_depth1_total']} · hidden {res['hidden']}")
+
+    asyncio.run(main())
+
+
 if __name__ == "__main__":
     app()
