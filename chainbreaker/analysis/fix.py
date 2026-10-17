@@ -21,7 +21,14 @@ _mine: set[str] = set()
 def copy_graph(ds: str) -> tuple[str, float]:
     name = f"{db.gname(ds)}:scratch:{secrets.token_hex(4)}"
     t = time.perf_counter()
-    db.graph(ds).copy(name)
+    for attempt in range(12):  # GRAPH.COPY forks; Redis allows one fork at a time (a background save may hold it)
+        try:
+            db.graph(ds).copy(name)
+            break
+        except Exception as e:  # noqa: BLE001
+            if "could not fork" not in str(e) or attempt == 11:
+                raise
+            time.sleep(0.25 * (attempt + 1))
     _mine.add(name)
     return name, round((time.perf_counter() - t) * 1000, 2)
 
@@ -151,7 +158,12 @@ def plan_fix(ds: str, adv_id: str, targets: str = "all") -> dict | None:
     try:
         db.run(scratch, Q.CAP_1)
         db.run(scratch, Q.CAP_2, {"adv": adv_id})
-        edges = db.q(scratch, Q.EDGES_EXPORT, ro=True)
+        edges, page = [], 5000
+        while True:
+            rows = db.q(scratch, Q.EDGES_EXPORT.replace("{SKIP}", str(len(edges))).replace("{LIMIT}", str(page)), ro=True)
+            edges += rows
+            if len(rows) < page:
+                break
         key_of = {}
         for e in edges:
             key_of[e["sid"]], key_of[e["did"]] = e["s_key"], e["d_key"]

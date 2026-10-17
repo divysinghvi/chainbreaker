@@ -14,8 +14,8 @@ _stats: contextvars.ContextVar[dict | None] = contextvars.ContextVar("cb_stats",
 def get_db() -> FalkorDB:
     global _db
     if _db is None:
-        _db = FalkorDB(host=config.FALKORDB_HOST, port=config.FALKORDB_PORT,
-                       password=config.FALKORDB_PASSWORD or None)
+        _db = FalkorDB(host=config.FALKORDB_HOST, port=config.FALKORDB_PORT, username=config.FALKORDB_USERNAME,
+                       password=config.FALKORDB_PASSWORD or None, ssl=config.FALKORDB_SSL)
     return _db
 
 

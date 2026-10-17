@@ -10,3 +10,5 @@ data/raw/
 video/raw/
 video/out/
 video/voice/
+.vercel
+.env*

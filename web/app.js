@@ -9,7 +9,7 @@ const SEV = { HIGH: C.orange, MED: C.amber, LOW: C.yellow };
 const SEV_ORDER = { HIGH: 0, MED: 1, LOW: 2 };
 
 const S = {
-  ds: "demo", org: "", publicMode: false, adv: null, action: null, depth: 1, blast: null, viz: null,
+  ds: "demo", org: "", publicMode: false, githubWrites: true, adv: null, action: null, depth: 1, blast: null, viz: null,
   sort: "sev", targets: "all", plan: null, cut: new Set(), fixed: new Set(), wasExposed: new Set(),
   chatId: null, replay: null, step: 0, graphMode: "viz", showSafe: false, big: false,
 };
@@ -203,7 +203,7 @@ function wave() {
 // ---------- datasets & stats ----------
 async function loadDatasets() {
   const d = await api("/api/datasets");
-  S.org = d.demo_org; S.publicMode = d.public_mode;
+  S.org = d.demo_org; S.publicMode = d.public_mode; S.githubWrites = d.github_writes !== false;
   const cncf = d.datasets.find((x) => x.id === "cncf");
   if (cncf && cncf.stats) $("#cncf-count").textContent = `(${cncf.stats.counts.Repo.toLocaleString()} repos)`;
   $$(".pill").forEach((p) => { p.disabled = !d.datasets.some((x) => x.id === p.dataset.ds); });
@@ -223,7 +223,8 @@ async function selectDataset(ds) {
   ["#depth-box", "#cards", "#list-head"].forEach((s) => ($(s).hidden = true));
   $("#exposed").innerHTML = ""; $("#sev-chips").innerHTML = ""; $("#adv-info").textContent = "";
   $("#plan").disabled = true;
-  $("#admin").hidden = ds !== "demo";
+  $("#admin").hidden = ds !== "demo" || !S.githubWrites;
+  $("#admin-off").hidden = ds !== "demo" || S.githubWrites;
   renderPrompts();
   if (G) G.graphData({ nodes: [], links: [] });
   $("#graph-empty").hidden = false;
@@ -465,7 +466,7 @@ function handleEvent(ev, pending, q) {
     evCard("call", `↻ grounding check: rewriting without ${esc(ev.unverified.join(", "))}`);
   } else if (ev.type === "approval") {
     const d = evCard("approval", `<b>Approval needed</b> · ${esc(ev.plan_id)}<br>${esc(ev.summary)}
-      ${ev.can_apply ? `<div class="row"><button class="btn primary" data-approve="${esc(ev.plan_id)}">Approve: open PRs</button></div>` : ""}`);
+      ${ev.can_apply && S.githubWrites ? `<div class="row"><button class="btn primary" data-approve="${esc(ev.plan_id)}">Approve: open PRs</button></div>` : ""}`);
     const b = d.querySelector("[data-approve]");
     if (b) b.onclick = () => approve(ev.plan_id, d);
   } else if (ev.type === "final") {

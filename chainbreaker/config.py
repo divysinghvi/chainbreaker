@@ -14,6 +14,8 @@ ANTHROPIC_WORKSPACE_ID = os.getenv("ANTHROPIC_WORKSPACE_ID", "")  # needed when 
 FALKORDB_HOST = os.getenv("FALKORDB_HOST", "localhost")
 FALKORDB_PORT = int(os.getenv("FALKORDB_PORT", "6379"))
 FALKORDB_PASSWORD = os.getenv("FALKORDB_PASSWORD", "chainbreaker")
+FALKORDB_USERNAME = os.getenv("FALKORDB_USERNAME") or None  # managed FalkorDB (e.g. FalkorDB Cloud)
+FALKORDB_SSL = os.getenv("FALKORDB_SSL", "0") == "1"
 PUBLIC_MODE = os.getenv("PUBLIC_MODE", "0") == "1"
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "change-me")
 REDACTION_SALT = os.getenv("REDACTION_SALT", "change-me")
@@ -23,7 +25,8 @@ CNCF_MAX_REPOS_PER_ORG = int(os.getenv("CNCF_MAX_REPOS_PER_ORG", "30"))
 AGENT_RATE_LIMIT = int(os.getenv("AGENT_RATE_LIMIT", "12"))
 
 DATA = ROOT / "data"
-CACHE = DATA / "cache"
+# Vercel functions can only write to /tmp
+CACHE = Path("/tmp/chainbreaker-cache") if os.getenv("VERCEL") else DATA / "cache"
 SNAPSHOTS = DATA / "snapshots"
 GROUND_TRUTH = DATA / "demo_ground_truth.json"
 REPLAY = DATA / "replay_tj_2025.json"

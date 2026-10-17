@@ -2,6 +2,7 @@
 import functools
 import json
 import logging
+import os
 import secrets
 import time
 from collections import defaultdict, deque
@@ -27,7 +28,7 @@ def autoload() -> None:
     """Import snapshots into an empty FalkorDB (fresh volume / deploy). Public mode only ever serves the
     redacted CNCF snapshot."""
     from .ingest import snapshot
-    for attempt in range(30):  # FalkorDB may still be starting under compose
+    for attempt in range(8 if os.getenv("VERCEL") else 30):  # FalkorDB may still be starting under compose
         try:
             db.get_db().list_graphs()
             break
@@ -48,7 +49,10 @@ def autoload() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    autoload()
+    try:
+        autoload()
+    except Exception as e:  # noqa: BLE001 - an unreachable DB must not take the whole app down; /healthz reports it
+        log.error("autoload failed: %s", e)
     yield
 
 
@@ -72,6 +76,8 @@ def _ds(ds: str) -> str:
 
 
 def _admin(token: str | None) -> None:
+    if not config.GITHUB_TOKEN:
+        raise HTTPException(503, "GitHub writes are disabled on this deployment (no GITHUB_TOKEN)")
     ok = bool(token) and secrets.compare_digest(token, config.ADMIN_TOKEN)
     if not ok or (config.PUBLIC_MODE and config.ADMIN_TOKEN == "change-me"):
         raise HTTPException(401, "admin token required (X-Admin-Token)")
@@ -110,7 +116,8 @@ def datasets() -> dict:
     for g in sorted(graphs):
         ds = g[3:]
         out.append({"id": ds, "graph": g, "stats": leaderboard.stats(ds) if ds in DATASETS else None})
-    return {"datasets": out, "public_mode": config.PUBLIC_MODE, "demo_org": config.DEMO_ORG}
+    return {"datasets": out, "public_mode": config.PUBLIC_MODE, "demo_org": config.DEMO_ORG,
+            "github_writes": bool(config.GITHUB_TOKEN)}
 
 
 @app.get("/api/replay/tj-2025")
@@ -268,7 +275,8 @@ class AgentBody(BaseModel):
 
 @app.post("/api/agent")
 def agent(body: AgentBody, request: Request) -> StreamingResponse:
-    _rate_limit(request.client.host if request.client else "?")
+    fwd = request.headers.get("x-forwarded-for", "")  # behind Vercel's proxy the socket peer is the proxy
+    _rate_limit(fwd.split(",")[0].strip() or (request.client.host if request.client else "?"))
     ds = _ds(body.dataset)
     if not body.message.strip() or len(body.message) > 2000:
         raise HTTPException(400, "message must be 1-2000 characters")

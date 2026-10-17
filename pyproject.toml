@@ -31,3 +31,6 @@ cb = "chainbreaker.cli:app"
 
 [tool.setuptools.packages.find]
 include = ["chainbreaker*"]
+
+[tool.vercel]
+entrypoint = "chainbreaker.api:app"
