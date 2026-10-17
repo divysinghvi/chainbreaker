@@ -12,6 +12,10 @@
 - **FalkorDB image defaults are tiny:** `FALKORDB_ARGS=MAX_QUEUED_QUERIES 25 TIMEOUT 1000 RESULTSET_SIZE 10000` — a 1 s query timeout and a 10k-row cap. The CNCF graph needs more (edge export for the min-cut is >10k rows), so compose overrides it with `TIMEOUT_DEFAULT 60000 TIMEOUT_MAX 300000 RESULTSET_SIZE -1`.
 - **Module version:** `MODULE LIST` reports `graph ver 42201` (FalkorDB 4.22.1) on `falkordb/falkordb:latest` with Redis 8.10.2 — not "v6.0.x" as the plan says. All six algorithms the plan wants are present (see the capability check below).
 
+- **Invalid `uses:` values are real:** the CP2 sample crawl's 68 "invalid" sites are literal `uses: $/.github/actions/...` strings in upstream workflow files (not a parser bug). They are counted and skipped.
+- **Crawl ids:** action ids are lowercase (owner/repo/path) but the original case is kept for fetching (`raw_path`), because git tree paths are case-sensitive. Workflow file paths keep their case in ids (they are file names). A local reusable call (`./.github/workflows/x.yml`) from a HEAD workflow points at that HEAD Workflow node itself rather than a duplicate `@HEAD` node.
+- **BFS batches are sorted by node id** so the per-query disk cache hits on re-runs (Python string hashing is randomized per process, so set order would change every run).
+
 ## FalkorDB capabilities
 
 ### `cb check` · 2026-10-17T11:40:27+00:00

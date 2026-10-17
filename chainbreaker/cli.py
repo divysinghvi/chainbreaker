@@ -76,5 +76,32 @@ def check() -> None:
         raise typer.Exit(1)
 
 
+
+def _orgs_for(dataset: str, orgs: str | None) -> list[str]:
+    if orgs:
+        return [o.strip() for o in orgs.split(",") if o.strip()]
+    if dataset == "demo":
+        return [config.DEMO_ORG]
+    if dataset == "cncf":
+        return config.CNCF_ORGS
+    raise typer.BadParameter("--orgs is required for this dataset")
+
+
+@app.command()
+def crawl(dataset: str = typer.Option(..., "--dataset"), orgs: str = typer.Option(None, "--orgs"),
+          max_repos: int = typer.Option(None, "--max-repos"), no_cache: bool = typer.Option(False, "--no-cache")) -> None:
+    """Crawl GitHub into data/cache/<dataset>/crawl.json."""
+    import logging
+
+    from .ingest import crawl as crawl_mod
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
+    if dataset == "demo":
+        no_cache = True
+    if max_repos is None:
+        max_repos = config.CNCF_MAX_REPOS_PER_ORG if dataset == "cncf" else 100
+    out = crawl_mod.crawl(dataset, _orgs_for(dataset, orgs), max_repos, no_cache)
+    typer.echo(crawl_mod.summary(out))
+
+
 if __name__ == "__main__":
     app()
