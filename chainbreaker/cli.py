@@ -131,5 +131,47 @@ def reset_demo() -> None:
     reset(typer.echo)
 
 
+@app.command()
+def advisory(dataset: str = typer.Option(..., "--dataset"), action: str = typer.Option(..., "--action"),
+             refs: str = typer.Option("", "--refs"), new: bool = typer.Option(False, "--new")) -> None:
+    """Simulate a compromise of an action (creates an Advisory)."""
+    from .analysis.advisory import simulate_compromise
+    a = simulate_compromise(dataset, action, [r for r in refs.split(",") if r], new)
+    if a is None:
+        typer.echo(f"{action} is not in the graph", err=True)
+        raise typer.Exit(1)
+    _out(a)
+
+
+@app.command()
+def blast(dataset: str = typer.Option(..., "--dataset"), advisory: str = typer.Option(..., "--advisory"),
+          depth: int = typer.Option(config.MAX_DEPTH, "--depth")) -> None:
+    """Blast radius of an advisory: exposed, depth-1 (grep) vs hidden, pinned-but-exposed."""
+    from .analysis.blast import blast as blast_fn
+    b = blast_fn(dataset, advisory, depth)
+    typer.echo(f"depth<={b['max_depth']}: exposed {b['exposed_total']} · depth-1 {b['depth1']} · hidden {b['hidden']}"
+               f" · HIGH {b['high_total']} · pinned-but-exposed {len(b['pinned_but_exposed'])}"
+               f" · by depth {b['by_depth']} · {b['graph_ms']} ms")
+    for x in b["exposed"]:
+        flag = "  [pinned-but-exposed]" if x["pinned_but_exposed"] else ""
+        typer.echo(f"  d{x['depth']} {x['severity']:<4} {x['workflow']}{flag}")
+
+
+@app.command()
+def path(dataset: str = typer.Option(..., "--dataset"), advisory: str = typer.Option(..., "--advisory"),
+         workflow: str = typer.Option(..., "--workflow"), depth: int = typer.Option(config.MAX_DEPTH, "--depth")) -> None:
+    """Shortest exposing path for one workflow, hop by hop with file:line."""
+    from .analysis.blast import explain
+    p = explain(dataset, advisory, workflow, depth)
+    if p is None:
+        typer.echo(f"{workflow} is not exposed by {advisory}")
+        raise typer.Exit(1)
+    typer.echo(f"{p['depth']} hops ({p['engine']}):")
+    for i, h in enumerate(p["hops"], 1):
+        lines = ",".join(map(str, h["lines"]))
+        typer.echo(f"  {i}. {h['from']}\n     --[{h['kind']}] {h['file_repo']}:{h['file_path']}:{lines}  uses: {h['uses']}"
+                   f"\n     -> {h['to']}{'  (pinned)' if h['pinned'] else ''}")
+
+
 if __name__ == "__main__":
     app()
