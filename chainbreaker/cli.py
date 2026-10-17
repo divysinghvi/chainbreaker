@@ -304,5 +304,12 @@ def ask(question: str = typer.Argument(...), dataset: str = typer.Option("demo",
             typer.echo(f"ERROR: {ev['message']}", err=True)
 
 
+@app.command("load-replay")
+def load_replay_cmd() -> None:
+    """Load data/replay_tj_2025.json into graph cb:replay-tj-2025."""
+    from .ingest.replay import load_replay
+    typer.echo(load_replay())
+
+
 if __name__ == "__main__":
     app()
