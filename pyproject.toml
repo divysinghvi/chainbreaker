@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chainbreaker"
+version = "0.1.0"
+description = "AI incident agent for GitHub Actions supply-chain attacks, on FalkorDB"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+dependencies = [
+  "FalkorDB==1.8.0",
+  "fastapi",
+  "uvicorn[standard]",
+  "httpx",
+  "ruamel.yaml",
+  "pydantic>=2",
+  "typer",
+  "networkx",
+  "anthropic",
+  "mcp[cli]<2",
+  "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+cb = "chainbreaker.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["chainbreaker*"]
