@@ -202,5 +202,41 @@ def simulate(dataset: str = typer.Option(..., "--dataset"), plan: str = typer.Op
     _out(simulate_fix(dataset, plan))
 
 
+@app.command("leaderboard")
+def leaderboard_cmd(dataset: str = typer.Option(..., "--dataset"), top: int = typer.Option(15, "--top")) -> None:
+    """Most load-bearing actions: PageRank, direct users, transitive reach, mutable reach."""
+    from .analysis.leaderboard import leaderboard as lb
+    res = lb(dataset, top)
+    typer.echo(f"{'action':<52} {'pagerank':>9} {'direct':>7} {'reach':>6} {'hidden':>6} {'mutable':>8}")
+    for r in res["rows"]:
+        typer.echo(f"{r['action']:<52} {r['pagerank']:>9} {r['direct']:>7} {r['reach']:>6} {r['hidden_reach']:>6}"
+                   f" {r['mutable_pct']:>7}%")
+
+
+@app.command("eval")
+def eval_cmd(no_cncf: bool = typer.Option(False, "--no-cncf")) -> None:
+    """Write eval/results.json + eval/RESULTS.md."""
+    from .analysis.evaluate import run
+    res = run(not no_cncf)
+    for r in res["demo"]:
+        typer.echo(f"  {'PASS' if r['pass'] else 'FAIL'}  {r['check']}  ({r['value']})")
+    if "cncf" in res:
+        _out(res["cncf"]["headline"] | {"ecosystem": res["cncf"]["ecosystem"]})
+
+
+@app.command("snapshot-export")
+def snapshot_export(dataset: str = typer.Option(..., "--dataset"), redact: bool = typer.Option(False, "--redact")) -> None:
+    """data/cache/<ds>/crawl.json -> data/snapshots/<ds>.crawl.json.gz (pseudonymized with --redact)."""
+    from .ingest.snapshot import export
+    typer.echo(export(dataset, redact))
+
+
+@app.command("snapshot-import")
+def snapshot_import(dataset: str = typer.Option(..., "--dataset")) -> None:
+    """Load data/snapshots/<ds>.crawl.json.gz into cb:<ds>."""
+    from .ingest.snapshot import import_
+    typer.echo(import_(dataset))
+
+
 if __name__ == "__main__":
     app()

@@ -38,8 +38,9 @@ RETURN sum(CASE WHEN w.at_ref IS NULL THEN 1 ELSE 0 END) AS head,
 REF_PIN_SHARE = """MATCH (w:Workflow)-[e:USES]->(r:ActionRef)
 WHERE w.at_ref IS NULL AND r.local = false
 RETURN count(e) AS refs, sum(CASE WHEN r.pinned = true THEN 1 ELSE 0 END) AS pinned"""
-META_CREATE = "CREATE (:Meta {id: 'meta', dataset: $ds, crawled_at: $at, orgs: $orgs, stats: $stats})"
-META = "MATCH (m:Meta) RETURN m.crawled_at AS crawled_at, m.orgs AS orgs LIMIT 1"
+META_CREATE = ("CREATE (:Meta {id: 'meta', dataset: $ds, crawled_at: $at, orgs: $orgs, stats: $stats, "
+               "redacted: $redacted})")
+META = "MATCH (m:Meta) RETURN m.crawled_at AS crawled_at, m.orgs AS orgs, m.redacted AS redacted LIMIT 1"
 
 # ---------- advisories (Q-ADV-LINK) ----------
 ADV_FIND = """MATCH (a:Advisory {action_id: $aid}) RETURN a.id AS id, a.refs AS refs, a.known_good_sha AS known_good_sha
@@ -167,10 +168,11 @@ RETURN a.id AS action, count(*) AS via_composites ORDER BY via_composites DESC L
 BETWEENNESS = """CALL algo.betweenness({relationshipTypes: ['USES']}) YIELD node, score
 WITH node, score WHERE 'ActionRef' IN labels(node) AND score > 0
 RETURN node.id AS id, score ORDER BY score DESC LIMIT 10"""
+# {MIN}: 1 = any mutable external ref reachable; 2 = one reachable only through an intermediate (hidden)
 TRANSITIVE_MUTABLE = """MATCH (w:Workflow) WHERE w.at_ref IS NULL AND w.entry = true
-OPTIONAL MATCH (w)-[:USES*2..{D}]->(r:ActionRef) WHERE r.pinned = false AND r.local = false
+OPTIONAL MATCH (w)-[:USES*{MIN}..{D}]->(r:ActionRef) WHERE r.pinned = false AND r.local = false
 WITH w, count(r) AS m
-RETURN count(w) AS total, sum(CASE WHEN m > 0 THEN 1 ELSE 0 END) AS with_transitive_mutable"""
+RETURN count(w) AS total, sum(CASE WHEN m > 0 THEN 1 ELSE 0 END) AS with_mutable"""
 MAX_DEPTH_SEEN = """MATCH p = (w:Workflow)-[:USES*1..{D}]->(:ActionRef)
 WHERE w.at_ref IS NULL AND w.entry = true RETURN max(length(p)) AS d"""
 

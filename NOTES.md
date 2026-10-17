@@ -17,6 +17,9 @@
 - **Pinned-but-exposed uses `coalesce(nodes(p)[1].pinned, false)`.** A first hop into a HEAD workflow (local reusable call) has no `pinned` property, and `null <> true` is null, so the plan's literal Q-PINNED would count such workflows as pinned.
 - **Fix `new_uses` keeps the original casing**: PIN builds `old_uses` up to the last `@` + the known-good SHA, instead of the lowercased action id (paths are case-sensitive).
 - **Scratch sweep is per process**: the `atexit` sweep deletes only scratch graphs this process created, so a CLI run can't delete an API server's in-flight what-if.
+- **Redaction scope (8.8):** besides Repo ids, HEAD workflow ids and local actions, *at-ref reusable workflows that live in a crawled repo* are pseudonymized too (they are the projects' own files), and workflow `name` becomes the file basename (names like "Kubernetes E2E" identify a repo). Non-local Action/ActionRef ids stay visible as the plan requires — so 33 of 1,129 crawled repos still appear, because they *are* published actions (`helm/kind-action`, `cilium/cilium-cli`, `envoyproxy/toolshed`, or `cilium/cilium/.github/actions/disk-cleanup@<sha>` used from another repo). `kubernetes/kubernetes`, `prometheus/prometheus`, `istio/istio`, `envoyproxy/envoy`, `argoproj/argo-cd` do not appear in the snapshot.
+- **Public mode reads only the redacted graph**: instead of rewriting strings at the output layer, the API re-imports the redacted snapshot when `PUBLIC_MODE=1` and the loaded `cb:cncf` graph's `Meta.redacted` is false. The redacted snapshot reproduces the same eval numbers (topology is unchanged).
+- **CNCF eval candidates**: "top 20 by transitive reach" is computed in FalkorDB (Q-REACH) over the union of the PageRank top 25, the top 60 by direct users and the top 40 by composite fan-in.
 - **BFS batches are sorted by node id** so the per-query disk cache hits on re-runs (Python string hashing is randomized per process, so set order would change every run).
 
 ## FalkorDB capabilities
@@ -50,4 +53,12 @@ lists work as documented. The residual-graph cut passes both validations on the 
 yields a `Path` whose nodes/edges are in hop order.
 
 ## Measured numbers
+
+From `cb eval` (2026-10-17, CNCF crawl of 47 orgs at 11:47 UTC):
+
+- **Demo:** 13/13 ground-truth checks PASS — 11 exposed, 2 at depth 1 (grep), 9 hidden, 1 pinned-but-exposed; min cut 3 (high) / 4 (all), computed by `falkordb.algo.maxFlow`; GRAPH.COPY what-if → 0 (copy ≈ 70–90 ms).
+- **CNCF scale:** 1,129 repos, 4,556 entry workflows, 16,541 USES edges, 2,247 action refs (766 composite); crawl took 423 s cold.
+- **28.9%** of 13,485 external `uses:` refs in CNCF workflows are mutable (tag/branch); **34.8%** of entry workflows have ≥1 mutable ref somewhere in their chain, **8.5%** have one reachable only through an intermediate action (hidden).
+- Simulating a compromise of each of the 20 highest-reach actions: **3,017** exposed workflows, **532 hidden (17.6%)**, **34 pinned to a SHA and still exposed**; 18 of the 20 actions have hidden victims.
+- Min-cut for the HIGH pipelines: **864 line changes vs 927 naive** across the 20 (cut < naive wherever composites are shared); the deepest chain seen is 6 hops. Blast radius is ~10–60 ms per action and a full plan (GRAPH.COPY + maxFlow) is ~0.5 s on the CNCF graph.
 

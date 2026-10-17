@@ -38,7 +38,7 @@ def load(ds: str, crawl: dict) -> dict:
             db.run(ds, Q.LOAD_NODES.format(label=label), {"rows": chunk})
     db.run(ds, Q.META_CREATE,
            {"ds": crawl["dataset"], "at": crawl["crawled_at"], "orgs": crawl["orgs"],
-            "stats": json.dumps(crawl.get("stats", {}))})
+            "stats": json.dumps(crawl.get("stats", {})), "redacted": bool(crawl.get("redacted"))})
 
     repo_ids = {r["id"] for r in crawl["repos"]}
     hw = [{"src": w["repo_id"], "dst": w["id"]} for w in crawl["workflows"]
