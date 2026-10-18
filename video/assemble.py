@@ -19,7 +19,10 @@ from post import ENC, concat_with_xfades, duration, ff, write_texts  # noqa: E40
 
 LEAD = 0.25  # the voice starts just after the scene's caption appears
 TAIL = 0.4
-CLEAN = "highpass=f=80,afftdn,loudnorm=I=-16:TP=-1.5:LRA=11"
+# dead air before and after the words is trimmed, so a late start on the record button does not delay the voice
+TRIM = ("silenceremove=start_periods=1:start_duration=0.05:start_threshold=-45dB,areverse,"
+        "silenceremove=start_periods=1:start_duration=0.05:start_threshold=-45dB,areverse")
+CLEAN = f"highpass=f=80,afftdn,{TRIM},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000"
 
 
 def voice_for(d: Path, sid: str) -> Path | None:
@@ -37,8 +40,9 @@ def main() -> None:
     vdir = Path(args.voice)
     tl = json.loads((C.OUT / "timeline.json").read_text())
     values = json.loads((C.RAW / "values.json").read_text())
-    work = C.OUT / "scenes_final"
+    work, cleaned = C.OUT / "scenes_final", C.OUT / "voice_clean"
     work.mkdir(parents=True, exist_ok=True)
+    cleaned.mkdir(parents=True, exist_ok=True)
 
     clips, voices = [], {}
     for s in tl["scenes"]:
@@ -48,8 +52,14 @@ def main() -> None:
             print(f"  warning: no voice for scene {sid}, keeping it silent")
             clips.append(src)
             continue
-        vd = duration(v)
-        voices[sid] = (v, vd)
+        c = cleaned / f"scene_{sid}.wav"
+        ff("-i", v, "-af", CLEAN, "-ac", "1", c)
+        vd = duration(c)
+        if vd < 0.3:
+            print(f"  warning: scene_{sid} is silent after trimming, keeping the scene silent")
+            clips.append(src)
+            continue
+        voices[sid] = (c, vd)
         need = LEAD + vd + TAIL - s["duration"]
         if need > 0.05:
             out = work / f"scene_{sid}.mp4"
@@ -76,7 +86,7 @@ def main() -> None:
             n = len(labels) + 1
             ms = int((s["t_start"] + LEAD) * 1000)
             ins += ["-i", voices[s["id"]][0]]
-            chains.append(f"[{n}:a]{CLEAN},aresample=48000,adelay={ms}|{ms}[a{n}]")
+            chains.append(f"[{n}:a]adelay={ms}|{ms}[a{n}]")
             labels.append(f"[a{n}]")
         graph = ";".join(chains) + f";{''.join(labels)}amix=inputs={len(labels)}:normalize=0:duration=longest," \
                                    f"apad=whole_dur={total:.3f},atrim=0:{total:.3f}[aout]"

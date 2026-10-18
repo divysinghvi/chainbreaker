@@ -10,6 +10,7 @@ length, and the file name to save.
 
 - Phone or laptop mic is fine. Use a quiet room, about 15 cm from the mic, and the same spot for every clip.
 - **One file per scene:** `video/voice/scene_01.m4a` … `scene_12.m4a` (`.wav` and `.mp3` also work).
+- Don't worry about pauses at the start or end of a clip: assemble.py trims the dead air, so each line starts right at its scene.
 - Retake freely: only the file on disk counts. A clip that runs longer than its scene is fine, because the
   scene is stretched to fit. A missing clip leaves that scene silent.
 
