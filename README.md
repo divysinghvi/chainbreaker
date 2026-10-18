@@ -4,7 +4,7 @@
 
 **Track 01: Agents That Act on Connected Data** · WeMakeDevs × FalkorDB Graph Hacks
 
-- **Demo video:** _add link_ · **Live:** _add URL_ (or run it locally in 3 commands, below)
+- **Live:** https://chainbreaker-rose.vercel.app · **Demo video:** _add link_ · or run it locally in 3 commands (below)
 - Graph: FalkorDB 4.22 (`falkordb/falkordb:latest`), one graph per dataset: `cb:demo`, `cb:cncf`, `cb:replay-tj-2025`
 
 ---
@@ -182,7 +182,9 @@ CLI tour: `cb check`, `cb advisory`, `cb blast --depth 1|6`, `cb path`, `cb plan
 
 ## Deploy
 
-`docker compose --profile prod up -d --build` on a personal VPS runs FalkorDB, the app and Caddy (automatic HTTPS; `DOMAIN` can be `chainbreaker.<ip-with-dashes>.sslip.io`). Set `PUBLIC_MODE=1` and a strong `ADMIN_TOKEN`. Public mode serves only the redacted CNCF snapshot, rate-limits the agent and refuses admin writes without the token.
+**Live deployment (Vercel + FalkorDB Cloud):** the FastAPI app runs as one Vercel Function in `bom1` (`pyproject.toml` → `[tool.vercel] entrypoint`, `vercel.json`), `web/` is promoted to Vercel's CDN, and the graphs live on a FalkorDB Cloud instance in AWS `ap-south-1`. On first start against an empty database the app imports the demo + redacted CNCF snapshots and the replay graph itself. Production env: `FALKORDB_HOST/PORT/USERNAME/PASSWORD`, `ANTHROPIC_API_KEY`, `DEMO_ORG`, `PUBLIC_MODE=1`; no `GITHUB_TOKEN`, so the public site never writes to GitHub (the PR → merge → rescan flow runs locally and in the video).
+
+**Self-hosted:** `docker compose --profile prod up -d --build` on a personal VPS runs FalkorDB, the app and Caddy (automatic HTTPS; `DOMAIN` can be `chainbreaker.<ip-with-dashes>.sslip.io`). Set `PUBLIC_MODE=1` and a strong `ADMIN_TOKEN`. Public mode serves only the redacted CNCF snapshot, rate-limits the agent and refuses admin writes without the token.
 
 ## Data and ethics
 

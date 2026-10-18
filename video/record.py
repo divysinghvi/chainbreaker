@@ -34,7 +34,7 @@ ACTION = f"{config.DEMO_ORG}/cb-changed-files"
 Q1 = "What happens if cb-changed-files is compromised?"
 Q2 = "Is evil-corp/backdoor-action in our CI?"
 REPO_URL = os.getenv("REPO_URL", "https://github.com/divysinghvi/chainbreaker")
-LIVE_URL = os.getenv("LIVE_URL", "")
+LIVE_URL = os.getenv("LIVE_URL", "https://chainbreaker-rose.vercel.app")
 HOLD = 0.8  # seconds after every visible change
 W = lambda sel: f"[data-demo={sel}]"  # noqa: E731
 
