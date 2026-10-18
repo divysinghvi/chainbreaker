@@ -1,6 +1,8 @@
-"""V5: add Divy's per-scene voice clips to the cut.
+"""V5: add Divy's voice to the cut.
 
-    python video/assemble.py --voice video/voice/
+    python video/assemble.py --voice video/voice/        # one clip per scene: scene_01.m4a ... scene_12.m4a
+    python video/assemble.py --take ~/Downloads/take.m4a # ONE recording, scenes read in order with a ~2 s pause
+                                                         # between them; it is cut at the 11 longest pauses
 
 Reads video/out/timeline.json (from post.py) and video/voice/scene_XX.(m4a|wav|mp3). Each clip is cleaned
 (highpass, denoise, loudness -16 LUFS) and placed at its scene's start. A scene whose clip is longer than the
@@ -9,6 +11,7 @@ clip stay silent (warned). Writes video/out/chainbreaker_demo_final.mp4 plus the
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -33,12 +36,41 @@ def voice_for(d: Path, sid: str) -> Path | None:
     return None
 
 
+def split_take(take: Path, scenes: list[dict], out_dir: Path) -> None:
+    """Cut one continuous take into one clip per scene at its longest pauses (the pauses between scenes)."""
+    n = len(scenes)
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(take), "-af", "silencedetect=noise=-40dB:d=0.5", "-f", "null",
+                        "-"], capture_output=True, text=True, check=True)
+    starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", r.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", r.stderr)]
+    total = duration(take)
+    inner = [(a, b) for a, b in zip(starts, ends) if a > 0.05 and b < total - 0.05]  # not the lead-in or tail
+    if len(inner) < n - 1:
+        raise SystemExit(f"found {len(inner) + 1} parts in the take, need {n}: pause about 2 seconds between scenes")
+    cuts = sorted(sorted(inner, key=lambda g: g[1] - g[0], reverse=True)[:n - 1])
+    shortest = min(b - a for a, b in cuts)
+    bounds = [0.0] + [(a + b) / 2 for a, b in cuts] + [total]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"  take {total:.1f} s cut into {n} parts (shortest pause used: {shortest:.1f} s)")
+    for i, s in enumerate(scenes):
+        part = out_dir / f"scene_{s['id']}.wav"
+        ff("-ss", f"{bounds[i]:.3f}", "-to", f"{bounds[i + 1]:.3f}", "-i", take, part)
+        expect = C.narration_s(s["narration"])
+        got = bounds[i + 1] - bounds[i]
+        flag = "  <- check this one" if not 0.4 * expect <= got <= 2.5 * expect + 2 else ""
+        print(f"    scene {s['id']} {s['title']:<13} {got:5.1f} s (script reads in ~{expect:.0f} s){flag}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--voice", default=str(C.VOICE))
+    ap.add_argument("--take", help="one continuous recording of all scenes, in order, ~2 s pause between scenes")
     args = ap.parse_args()
     vdir = Path(args.voice)
     tl = json.loads((C.OUT / "timeline.json").read_text())
+    if args.take:
+        vdir = C.OUT / "voice_split"
+        split_take(Path(args.take).expanduser(), tl["scenes"], vdir)
     values = json.loads((C.RAW / "values.json").read_text())
     work, cleaned = C.OUT / "scenes_final", C.OUT / "voice_clean"
     work.mkdir(parents=True, exist_ok=True)

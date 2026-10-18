@@ -20,6 +20,15 @@ length, and the file name to save.
 python video/assemble.py --voice video/voice/
 ```
 
+**Or record everything in one take.** Read the 12 scenes in order and pause about 2 seconds between scenes
+(short breaths inside a scene are fine: the take is cut at its 11 longest pauses). Then:
+
+```bash
+python video/assemble.py --take ~/Downloads/take.m4a
+```
+
+It prints each part's length next to the script's estimate and marks any that look wrong.
+
 This cleans the audio (high-pass, denoise, −16 LUFS), places each clip at its scene, and stretches any scene
 whose clip is longer. It writes `video/out/chainbreaker_demo_final.mp4`, `chainbreaker_demo_final.srt` and
 `youtube_description_final.txt` (chapters for the stretched timeline).
